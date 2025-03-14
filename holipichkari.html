@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detailed Holi Pichkari Animation with Three.js</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Varela Round', sans-serif;
+            background: linear-gradient(to bottom, #87CEEB, #1E90FF);
+        }
+        canvas {
+            display: block;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background: #ff3366;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #ff5588;
+            transform: translateY(-2px);
+        }
+        .color-picker {
+            display: flex;
+            gap: 5px;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            transition: transform 0.2s;
+        }
+        .color-option:hover {
+            transform: scale(1.2);
+        }
+        .heading {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .pressure-meter {
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            width: 150px;
+            height: 30px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .pressure-bar {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(to right, #2ecc71, #f1c40f, #e74c3c);
+            transform-origin: left;
+            transform: scaleX(0.7);
+            transition: transform 0.3s;
+        }
+        .pressure-label {
+            position: absolute;
+            bottom: 110px;
+            left: 20px;
+            color: white;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        .range-slider {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            width: 150px;
+        }
+        .spray-power-label {
+            position: absolute;
+            bottom: 110px;
+            right: 20px;
+            color: white;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="heading">Happy Holi Pichkari</div>
+    
+    <div class="color-picker">
+        <div class="color-option" style="background-color: #ff3366;" data-color="0xff3366"></div>
+        <div class="color-option" style="background-color: #3498db;" data-color="0x3498db"></div>
+        <div class="color-option" style="background-color: #f1c40f;" data-color="0xf1c40f"></div>
+        <div class="color-option" style="background-color: #2ecc71;" data-color="0x2ecc71"></div>
+        <div class="color-option" style="background-color: #9b59b6;" data-color="0x9b59b6"></div>
+    </div>
+    
+    <div class="pressure-label">Water Pressure</div>
+    <div class="pressure-meter">
+        <div class="pressure-bar" id="pressureBar"></div>
+    </div>
+    
+    <div class="spray-power-label">Spray Power</div>
+    <input type="range" min="1" max="100" value="50" class="range-slider" id="powerSlider">
+    
+    <div class="controls">
+        <button id="pumpBtn">Pump</button>
+        <button id="shootBtn">Spray Colors!</button>
+        <button id="toggleAutoBtn">Auto Spray</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Scene setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000, 0);
+        document.body.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 5, 5).normalize();
+        scene.add(directionalLight);
+        
+        const pointLight = new THREE.PointLight(0xffffff, 0.8, 20);
+        pointLight.position.set(0, 3, 5);
+        scene.add(pointLight);
+
+        // Pichkari (water gun) - 3D model
+        const pichkariGroup = new THREE.Group();
+        scene.add(pichkariGroup);
+
+        // Main body - cylinder with tapered design
+        const mainBodyGeometry = new THREE.CylinderGeometry(0.6, 0.7, 4, 32);
+        const mainBodyMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0xff3366,
+            specular: 0x555555,
+            shininess: 60,
+            map: createGradientTexture(['#ff3366', '#ff5588'], 256)
+        });
+        const mainBody = new THREE.Mesh(mainBodyGeometry, mainBodyMaterial);
+        mainBody.rotation.z = Math.PI / 2; // Rotate to horizontal
+        pichkariGroup.add(mainBody);
+
+        // Water tank - transparent cylinder showing water level
+        const tankGeometry = new THREE.CylinderGeometry(0.5, 0.5, 1.5, 32);
+        const tankMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x3498db,
+            transparent: true,
+            opacity: 0.6,
+            shininess: 100
+        });
+        const waterTank = new THREE.Mesh(tankGeometry, tankMaterial);
+        waterTank.position.set(-1, 0, 0);
+        waterTank.rotation.z = Math.PI / 2;
+        pichkariGroup.add(waterTank);
+        
+        // Tank cap
+        const tankCapGeometry = new THREE.CylinderGeometry(0.55, 0.55, 0.2, 32);
+        const tankCapMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x444444,
+            shininess: 80
+        });
+        const tankCap = new THREE.Mesh(tankCapGeometry, tankCapMaterial);
+        tankCap.position.set(-1.85, 0, 0);
+        tankCap.rotation.z = Math.PI / 2;
+        pichkariGroup.add(tankCap);
+        
+        // Handle - ergonomic design
+        const handleCurvePoints = [];
+        for (let i = 0; i <= 20; i++) {
+            const t = i / 20;
+            handleCurvePoints.push(
+                new THREE.Vector3(
+                    0,
+                    -0.8 - 0.5 * Math.sin(t * Math.PI),
+                    -0.2 * Math.sin(t * Math.PI * 2)
+                )
+            );
+        }
+        
+        const handleCurve = new THREE.CatmullRomCurve3(handleCurvePoints);
+        const handleGeometry = new THREE.TubeGeometry(handleCurve, 20, 0.15, 16, false);
+        const handleMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x9932CC,
+            specular: 0x333333,
+            shininess: 60
+        });
+        const handle = new THREE.Mesh(handleGeometry, handleMaterial);
+        pichkariGroup.add(handle);
+
+        // Trigger mechanism
+        const triggerBaseGeometry = new THREE.BoxGeometry(0.4, 0.2, 0.6);
+        const triggerBaseMaterial = new THREE.MeshPhongMaterial({ color: 0x444444 });
+        const triggerBase = new THREE.Mesh(triggerBaseGeometry, triggerBaseMaterial);
+        triggerBase.position.set(0.2, -0.5, 0);
+        pichkariGroup.add(triggerBase);
+        
+        const triggerGeometry = new THREE.BoxGeometry(0.1, 0.3, 0.4);
+        const triggerMaterial = new THREE.MeshPhongMaterial({ color: 0xff9933 });
+        const trigger = new THREE.Mesh(triggerGeometry, triggerMaterial);
+        trigger.position.set(0.3, -0.7, 0);
+        pichkariGroup.add(trigger);
+        
+        // Pressure pump mechanism
+        const pumpBaseGeometry = new THREE.CylinderGeometry(0.25, 0.25, 0.3, 16);
+        const pumpBaseMaterial = new THREE.MeshPhongMaterial({ color: 0x555555 });
+        const pumpBase = new THREE.Mesh(pumpBaseGeometry, pumpBaseMaterial);
+        pumpBase.position.set(-0.6, -0.6, 0);
+        pumpBase.rotation.x = Math.PI / 2;
+        pichkariGroup.add(pumpBase);
+        
+        const pumpRodGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.6, 16);
+        const pumpRodMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
+        const pumpRod = new THREE.Mesh(pumpRodGeometry, pumpRodMaterial);
+        pumpRod.position.set(-0.6, -1, 0);
+        pumpRod.rotation.x = Math.PI / 2;
+        pichkariGroup.add(pumpRod);
+        
+        const pumpHandleGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+        const pumpHandleMaterial = new THREE.MeshPhongMaterial({ color: 0x222222 });
+        const pumpHandle = new THREE.Mesh(pumpHandleGeometry, pumpHandleMaterial);
+        pumpHandle.position.set(-0.6, -1.3, 0);
+        pichkariGroup.add(pumpHandle);
+
+        // Nozzle - detailed with multiple parts
+        const nozzleBaseGeometry = new THREE.CylinderGeometry(0.35, 0.5, 0.4, 32);
+        const nozzleBaseMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0xff9933,
+            specular: 0x111111,
+            shininess: 100
+        });
+        const nozzleBase = new THREE.Mesh(nozzleBaseGeometry, nozzleBaseMaterial);
+        nozzleBase.position.set(1.8, 0, 0);
+        nozzleBase.rotation.z = Math.PI / 2;
+        pichkariGroup.add(nozzleBase);
+        
+        const nozzleTipGeometry = new THREE.CylinderGeometry(0.15, 0.35, 0.5, 32);
+        const nozzleTipMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0xffcc00,
+            specular: 0x111111,
+            shininess: 100
+        });
+        const nozzle = new THREE.Mesh(nozzleTipGeometry, nozzleTipMaterial);
+        nozzle.position.set(2.25, 0, 0);
+        nozzle.rotation.z = Math.PI / 2;
+        pichkariGroup.add(nozzle);
+        
+        // Spray head with multiple outlet holes
+        const sprayHeadGeometry = new THREE.CylinderGeometry(0.18, 0.18, 0.1, 32);
+        const sprayHeadMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
+        const sprayHead = new THREE.Mesh(sprayHeadGeometry, sprayHeadMaterial);
+        sprayHead.position.set(2.5, 0, 0);
+        sprayHead.rotation.z = Math.PI / 2;
+        pichkariGroup.add(sprayHead);
+        
+        // Spray holes
+        const holePositions = [
+            { x: 2.55, y: 0.1, z: 0 },
+            { x: 2.55, y: -0.1, z: 0 },
+            { x: 2.55, y: 0, z: 0.1 },
+            { x: 2.55, y: 0, z: -0.1 },
+            { x: 2.55, y: 0.07, z: 0.07 },
+            { x: 2.55, y: -0.07, z: 0.07 },
+            { x: 2.55, y: 0.07, z: -0.07 },
+            { x: 2.55, y: -0.07, z: -0.07 }
+        ];
+        
+        holePositions.forEach(pos => {
+            const holeGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.05, 8);
+            const holeMaterial = new THREE.MeshPhongMaterial({ color: 0x111111 });
+            const hole = new THREE.Mesh(holeGeometry, holeMaterial);
+            hole.position.set(pos.x, pos.y, pos.z);
+            hole.rotation.z = Math.PI / 2;
+            pichkariGroup.add(hole);
+        });
+
+        // Decorative rings and patterns
+        for (let i = -1; i <= 1; i += 0.5) {
+            const ringGeometry = new THREE.TorusGeometry(0.61, 0.05, 16, 32);
+            const ringMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xffcc00, 
+                specular: 0x111111,
+                shininess: 80
+            });
+            const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+            ring.position.set(i, 0, 0);
+            ring.rotation.y = Math.PI / 2;
+            pichkariGroup.add(ring);
+        }
+
+        // Position the pichkari
+        pichkariGroup.position.set(0, 0, -5);
+        
+        // Position the camera
+        camera.position.z = 5;
+
+        // Variables for animation
+        let particles = [];
+        let currentColor = 0xff3366;
+        let pressure = 0.7;
+        let sprayPower = 0.5;
+        let isAutoSpraying = false;
+        let autoSprayInterval;
+
+        // Function to create a gradient texture
+        function createGradientTexture(colors, size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            
+            const gradient = ctx.createLinearGradient(0, 0, size, 0);
+            colors.forEach((color, index) => {
+                gradient.addColorStop(index / (colors.length - 1), color);
+            });
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, 1);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
+        }
+
+        // Function to create a single particle
+        function createParticle() {
+            const geometry = new THREE.SphereGeometry(0.05 + Math.random() * 0.1, 8, 8);
+            const material = new THREE.MeshPhongMaterial({
+                color: currentColor,
+                transparent: true,
+                opacity: 0.8,
+                shininess: 80
+            });
+            
+            const particle = new THREE.Mesh(geometry, material);
+            
+            // Random position near the nozzle
+            const spreadFactor = 0.1;
+            particle.position.set(
+                2.6,
+                (Math.random() - 0.5) * spreadFactor, 
+                (Math.random() - 0.5) * spreadFactor
+            );
+            
+            // Random velocity with direction primarily forward
+            particle.velocity = new THREE.Vector3(
+                2 + Math.random() * 3 * sprayPower,
+                (Math.random() - 0.5) * 0.5,
+                (Math.random() - 0.5) * 0.5
+            );
+            
+            // Random rotation
+            particle.rotation.set(
+                Math.random() * Math.PI * 2,
+                Math.random() * Math.PI * 2,
+                Math.random() * Math.PI * 2
+            );
+            
+            // Random lifespan
+            particle.lifespan = 1 + Math.random() * 2;
+            particle.age = 0;
+            
+            scene.add(particle);
+            particles.push(particle);
+            
+            return particle;
+        }
+
+        // Function to shoot particles
+        function shootParticles() {
+            if (pressure < 0.1) {
+                alert("Not enough pressure! Pump the water gun first.");
+                return;
+            }
+            
+            // Create multiple particles
+            const particleCount = Math.floor(20 * pressure * sprayPower);
+            for (let i = 0; i < particleCount; i++) {
+                createParticle();
+            }
+            
+            // Reduce pressure
+            pressure = Math.max(0, pressure - 0.1);
+            updatePressureDisplay();
+            
+            // Animate trigger
+            animateTrigger();
+        }
+
+        // Function to animate trigger pull
+        function animateTrigger() {
+            const originalPosition = trigger.position.y;
+            trigger.position.y -= 0.1;
+            
+            setTimeout(() => {
+                trigger.position.y = originalPosition;
+            }, 100);
+        }
+
+        // Function to animate pump
+        function animatePump() {
+            const originalPosition = pumpHandle.position.y;
+            pumpHandle.position.y -= 0.2;
+            
+            setTimeout(() => {
+                pumpHandle.position.y = originalPosition;
+                increasePressure();
+            }, 200);
+        }
+
+        // Function to increase pressure
+        function increasePressure() {
+            pressure = Math.min(1, pressure + 0.1);
+            updatePressureDisplay();
+        }
+
+        // Function to update pressure display
+        function updatePressureDisplay() {
+            const pressureBar = document.getElementById('pressureBar');
+            pressureBar.style.transform = `scaleX(${pressure})`;
+        }
+
+        // Function to toggle auto spray
+        function toggleAutoSpray() {
+            isAutoSpraying = !isAutoSpraying;
+            const toggleBtn = document.getElementById('toggleAutoBtn');
+            
+            if (isAutoSpraying) {
+                toggleBtn.textContent = "Stop Auto";
+                toggleBtn.style.background = "#e74c3c";
+                autoSprayInterval = setInterval(() => {
+                    if (pressure > 0.1) {
+                        shootParticles();
+                    } else {
+                        clearInterval(autoSprayInterval);
+                        isAutoSpraying = false;
+                        toggleBtn.textContent = "Auto Spray";
+                        toggleBtn.style.background = "#ff3366";
+                    }
+                }, 200);
+            } else {
+                toggleBtn.textContent = "Auto Spray";
+                toggleBtn.style.background = "#ff3366";
+                clearInterval(autoSprayInterval);
+            }
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const particle = particles[i];
+                
+                // Update position based on velocity
+                particle.position.add(particle.velocity);
+                
+                // Apply gravity
+                particle.velocity.y -= 0.01;
+                
+                // Apply drag
+                particle.velocity.multiplyScalar(0.98);
+                
+                // Update age
+                particle.age += 0.02;
+                
+                // Reduce opacity with age
+                particle.material.opacity = Math.max(0, 1 - (particle.age / particle.lifespan));
+                
+                // Remove old particles
+                if (particle.age >= particle.lifespan) {
+                    scene.remove(particle);
+                    particles.splice(i, 1);
+                }
+            }
+            
+            // Gentle oscillation of the pichkari
+            pichkariGroup.rotation.z = Math.sin(Date.now() * 0.001) * 0.05;
+            pichkariGroup.rotation.y = Math.sin(Date.now() * 0.0005) * 0.05;
+            
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Event listeners
+        document.getElementById('shootBtn').addEventListener('click', shootParticles);
+        document.getElementById('pumpBtn').addEventListener('click', animatePump);
+        document.getElementById('toggleAutoBtn').addEventListener('click', toggleAutoSpray);
+        
+        // Power slider
+        const powerSlider = document.getElementById('powerSlider');
+        powerSlider.addEventListener('input', () => {
+            sprayPower = powerSlider.value / 100;
+        });
+        
+        // Color picker
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', () => {
+                currentColor = parseInt(option.dataset.color);
+                mainBodyMaterial.color.setHex(currentColor);
+                mainBodyMaterial.map = createGradientTexture([
+                    '#' + currentColor.toString(16).padStart(6, '0'),
+                    '#' + (currentColor + 0x222222).toString(16).padStart(6, '0')
+                ], 256);
+            });
+        });
+
+        // Initialize pressure display
+        updatePressureDisplay();
+        
+        // Start animation loop
+        animate();
+    </script>
+</body>
+</html>
