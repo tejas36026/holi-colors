@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Holi Powder Animation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.15/paper-full.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #f5f5ff;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        canvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #central-image {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            pointer-events: none;
+            max-width: 90%;
+            max-height: 90%;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #title {
+            font-size: 5rem;
+            font-weight: bold;
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            line-height: 1.2;
+        }
+        
+        .letter {
+            display: inline-block;
+            animation: float 3s infinite alternate ease-in-out;
+        }
+        
+        #h { color: #FF1493; animation-delay: 0s; }
+        #o { color: #FFA500; animation-delay: 0.3s; }
+        #l { color: #9400D3; animation-delay: 0.6s; }
+        #i { color: #32CD32; animation-delay: 0.9s; }
+        
+        .silhouette {
+            position: absolute;
+            bottom: 20px;
+            height: 150px;
+            filter: brightness(0);
+            z-index: 20;
+        }
+        
+        #silhouette-left {
+            left: 20px;
+            transform: scaleX(-1);
+        }
+        
+        #silhouette-right {
+            right: 20px;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(-10px) rotate(3deg); }
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            color: #333;
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(0,0,0,0.7);
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: rgba(255,255,255,0.8);
+            padding: 10px 20px;
+            border-radius: 20px;
+            z-index: 30;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="canvas" resize="true"></canvas>
+        <div id="central-image">
+            <div id="title">
+                Happy <span class="letter" id="h">H</span><span class="letter" id="o">O</span><span class="letter" id="l">L</span><span class="letter" id="i">I</span>
+            </div>
+        </div>
+        
+        <img class="silhouette" id="silhouette-left" src="/api/placeholder/100/150" alt="silhouette">
+        <img class="silhouette" id="silhouette-right" src="/api/placeholder/100/150" alt="silhouette">
+        
+        <div id="instructions">Click and drag to throw Holi colors!</div>
+    </div>
+    
+    <div class="loading">Loading...</div>
+    
+    <script type="text/paperscript" canvas="canvas">
+        // Initialize variables
+        var holiColorPalette = [
+            '#FF1493', // Pink
+            '#FF4500', // Orange Red
+            '#FFD700', // Gold/Yellow
+            '#32CD32', // Lime Green
+            '#1E90FF', // Blue
+            '#9400D3', // Violet
+            '#FF00FF', // Magenta
+            '#FE5000', // Traditional Orange
+            '#E71D36', // Bright Red
+            '#8A4FFF'  // Purple
+        ];
+        
+        var powderClouds = [];
+        var powderParticles = [];
+        var dustParticles = [];
+        var lastMousePos = null;
+        var currentColor = getRandomColor();
+        var bgLayer = new Layer();
+        var fgLayer = new Layer();
+        var particleLayer = new Layer();
+        var dustLayer = new Layer();
+        
+        // Create festive background
+        createFestiveBackground();
+        
+        // Get random color from palette
+        function getRandomColor() {
+            return holiColorPalette[Math.floor(Math.random() * holiColorPalette.length)];
+        }
+        
+        // Handle mouse events
+        function onMouseDown(event) {
+            lastMousePos = event.point;
+            currentColor = getRandomColor();
+            
+            // Create initial powder puff
+            createPowderPuff(event.point, currentColor, 1);
+        }
+        
+        function onMouseDrag(event) {
+            // Calculate drag vector
+            var vector = event.point.subtract(lastMousePos);
+            var dragLength = vector.length;
+            
+            // Only create throws if mouse moved enough distance
+            if (dragLength > 20) {
+                // Create powder throw in the direction of drag
+                var throwOrigin = lastMousePos;
+                var throwDirection = vector.normalize();
+                var throwStrength = Math.min(dragLength / 80, 1.5);
+                
+                createPowderThrow(throwOrigin, throwDirection, currentColor, throwStrength);
+                
+                lastMousePos = event.point;
+                
+                // Change color occasionally
+                if (Math.random() < 0.3) {
+                    currentColor = getRandomColor();
+                }
+            }
+        }
+        
+        function onMouseUp(event) {
+            // Create final powder burst
+            var vector = event.point.subtract(lastMousePos || event.point);
+            var throwStrength = vector.length / 100;
+            
+            if (vector.length > 0) {
+                var throwDirection = vector.normalize();
+                createPowderBurst(event.point, throwDirection, currentColor, Math.max(throwStrength, 0.8));
+            } else {
+                createPowderPuff(event.point, currentColor, 1.2);
+            }
+            
+            // Reset
+            lastMousePos = null;
+        }
+        
+        // Create festive background
+        function createFestiveBackground() {
+            bgLayer.activate();
+            
+            // Create subtle color patches in background
+            for (var i = 0; i < 15; i++) {
+                var color = getRandomColor();
+                var size = Math.random() * 400 + 200;
+                var posX = Math.random() * view.bounds.width;
+                var posY = Math.random() * view.bounds.height;
+                
+                createColorBlob(new Point(posX, posY), size, color);
+            }
+            
+            // Create white rectangle in center
+            var centerRect = new Path.Rectangle({
+                point: [view.center.x - 250, view.center.y - 150],
+                size: [500, 300],
+                fillColor: 'white',
+                radius: 20
+            });
+            
+            // Create subtle powder texture across full canvas
+            createBackgroundTexture();
+            
+            // Hide loading text
+            document.querySelector('.loading').style.display = 'none';
+            
+            // Switch to foreground layer
+            fgLayer.activate();
+        }
+        
+        // Create background powder texture
+        function createBackgroundTexture() {
+            // Create subtle powder texture across canvas
+            for (var i = 0; i < 500; i++) {
+                var x = Math.random() * view.bounds.width;
+                var y = Math.random() * view.bounds.height;
+                var size = Math.random() * 3 + 1;
+                var color = getRandomColor();
+                
+                var dot = new Path.Circle({
+                    center: [x, y],
+                    radius: size,
+                    fillColor: color
+                });
+                
+                dot.opacity = Math.random() * 0.15 + 0.05;
+            }
+        }
+        
+        // Create color blob for background
+        function createColorBlob(center, size, color) {
+            var points = 12;
+            var radius = size / 2;
+            var path = new Path();
+            
+            for (var i = 0; i < points; i++) {
+                var angle = (i / points) * 2 * Math.PI;
+                var variance = Math.random() * 0.4 + 0.8;
+                var x = center.x + Math.cos(angle) * radius * variance;
+                var y = center.y + Math.sin(angle) * radius * variance;
+                path.add(new Point(x, y));
+            }
+            
+            path.closed = true;
+            path.smooth();
+            
+            // Set fill color with transparency
+            var fillColor = new Color(color);
+            fillColor.alpha = 0.1;
+            path.fillColor = fillColor;
+            
+            return path;
+        }
+        
+        // Create powder puff (for clicks)
+        function createPowderPuff(position, color, scale) {
+            fgLayer.activate();
+            
+            // Create main powder cloud group
+            var puff = new Group();
+            
+            // Create several overlapping irregular shapes for more organic look
+            for (var i = 0; i < 5; i++) {
+                var cloudPath = new Path();
+                var numPoints = Math.floor(Math.random() * 6) + 15;
+                var cloudRadius = (Math.random() * 20 + 30) * scale;
+                var centerOffset = new Point(
+                    (Math.random() * 20 - 10) * scale,
+                    (Math.random() * 20 - 10) * scale
+                );
+                
+                for (var j = 0; j < numPoints; j++) {
+                    var angle = (j / numPoints) * 2 * Math.PI;
+                    var variance = Math.random() * 0.5 + 0.5;
+                    var x = position.x + centerOffset.x + Math.cos(angle) * cloudRadius * variance;
+                    var y = position.y + centerOffset.y + Math.sin(angle) * cloudRadius * variance;
+                    cloudPath.add(new Point(x, y));
+                }
+                
+                cloudPath.closed = true;
+                cloudPath.smooth();
+                
+                // Set fill color with varying transparency
+                var fillColor = new Color(color);
+                fillColor.alpha = Math.random() * 0.2 + 0.5;
+                cloudPath.fillColor = fillColor;
+                cloudPath.blendMode = 'multiply';
+                
+                puff.addChild(cloudPath);
+            }
+            
+            // Add lighter center to cloud
+            var centerDot = new Path.Circle({
+                center: position,
+                radius: 10 * scale,
+                fillColor: color
+            });
+            centerDot.opacity = 0.9;
+            puff.addChild(centerDot);
+            
+            // Add to powder clouds array
+            powderClouds.push({
+                group: puff,
+                position: position.clone(),
+                initialScale: scale,
+                life: 1.0,
+                velocity: new Point(
+                    (Math.random() * 2 - 1) * scale,
+                    -1 * Math.random() * 2 * scale
+                ),
+                rotationSpeed: (Math.random() * 2 - 1) * scale
+            });
+            
+            // Create powder particles
+            createPowderParticles(position, color, scale, 40);
+            
+            // Create fine dust particles
+            createDustParticles(position, color, scale, 60);
+        }
+        
+        // Create directional powder throw (for dragging)
+        function createPowderThrow(origin, direction, color, force) {
+            // Calculate throw endpoint
+            var throwDistance = 80 * force;
+            var throwEndpoint = origin.add(direction.multiply(throwDistance));
+            
+            // Create hand motion path for throwing
+            var handPath = new Path();
+            handPath.strokeColor = color;
+            handPath.strokeWidth = 7 * force;
+            handPath.opacity = 0.25;
+            handPath.strokeCap = 'round';
+            
+            handPath.add(origin);
+            
+            // Add curve to path for natural throwing motion
+            var controlPoint = origin.add(direction.multiply(throwDistance * 0.5));
+            // Add perpendicular offset for curved throw
+            var perpVector = new Point(-direction.y, direction.x);
+            controlPoint = controlPoint.add(perpVector.multiply((Math.random() * 30 - 15) * force));
+            
+            handPath.add(controlPoint);
+            handPath.add(throwEndpoint);
+            handPath.smooth();
+            
+            // Animate path fade out
+            animatePathFade(handPath);
+            
+            // Create powder particles along the path
+            var numPoints = Math.floor(throwDistance / 5);
+            for (var i = 0; i < numPoints; i++) {
+                var t = i / numPoints;
+                var pointPos = handPath.getPointAt(handPath.length * t);
+                
+                if (pointPos && Math.random() < 0.3) {
+                    if (i > numPoints * 0.5 && Math.random() < 0.5) {
+                        createPowderParticles(pointPos, color, force * (0.3 + 0.7 * t), 3);
+                    }
+                    createDustParticles(pointPos, color, force * (0.2 + 0.8 * t), 5);
+                }
+            }
+            
+            // Create powder burst at endpoint
+            createPowderPuff(throwEndpoint, color, force);
+            
+            // Create secondary puffs
+            for (var i = 0; i < 2; i++) {
+                var offset = perpVector.multiply((Math.random() * 40 - 20) * force);
+                var secondaryPos = throwEndpoint.add(offset);
+                createPowderPuff(secondaryPos, color, force * 0.7);
+            }
+        }
+        
+        // Create powder burst (for mouse up)
+        function createPowderBurst(position, direction, color, force) {
+            // Create multiple powder puffs in a burst pattern
+            var burstCount = Math.floor(force * 5) + 3;
+            
+            for (var i = 0; i < burstCount; i++) {
+                var angle = Math.random() * Math.PI * 0.7 - Math.PI * 0.35;
+                var burstDir = direction.rotate(angle * 180 / Math.PI);
+                var distance = Math.random() * 60 * force + 20;
+                var burstPos = position.add(burstDir.multiply(distance));
+                
+                createPowderPuff(burstPos, color, force * (Math.random() * 0.4 + 0.6));
+            }
+            
+            // Create a central, larger powder puff
+            createPowderPuff(position, color, force * 1.2);
+            
+            // Create extra particle burst
+            createPowderParticles(position, color, force, 60);
+            createDustParticles(position, color, force, 100);
+        }
+        
+        // Create powder particles
+        function createPowderParticles(position, color, scale, count) {
+            particleLayer.activate();
+            
+            for (var i = 0; i < count; i++) {
+                var angle = Math.random() * 2 * Math.PI;
+                var distance = Math.random() * 40 * scale + 10;
+                var particlePosition = position.add(new Point(
+                    Math.cos(angle) * distance,
+                    Math.sin(angle) * distance
+                ));
+                
+                // Create random velocity - slightly biased upward for powder
+                var speed = Math.random() * 3 * scale + 1;
+                var particleVelocity = new Point(
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed - Math.random() * 2 * scale
+                );
+                
+                // Create particle size
+                var size = Math.random() * 5 * scale + 3;
+                
+                // Create irregular particle shape instead of perfect circle
+                var particle;
+                var particleType = Math.random();
+                
+                if (particleType < 0.6) {
+                    // Irregular powder clump
+                    particle = new Path();
+                    var particlePoints = Math.floor(Math.random() * 3) + 5;
+                    
+                    for (var j = 0; j < particlePoints; j++) {
+                        var pAngle = (j / particlePoints) * 2 * Math.PI;
+                        var pRadius = size * (Math.random() * 0.4 + 0.6);
+                        var px = particlePosition.x + Math.cos(pAngle) * pRadius;
+                        var py = particlePosition.y + Math.sin(pAngle) * pRadius;
+                        particle.add(new Point(px, py));
+                    }
+                    
+                    particle.closed = true;
+                    particle.smooth();
+                } else {
+                    // Simple circle
+                    particle = new Path.Circle({
+                        center: particlePosition,
+                        radius: size
+                    });
+                }
+                
+                // Color variations
+                var particleColor = new Color(color);
+                
+                // 20% chance to lighten the particle
+                if (Math.random() < 0.2) {
+                    particleColor.lightness = Math.min(particleColor.lightness + Math.random() * 0.3, 1);
+                }
+                
+                particle.fillColor = particleColor;
+                particle.opacity = Math.random() * 0.4 + 0.6;
+                
+                // Add to particles array
+                powderParticles.push({
+                    path: particle,
+                    velocity: particleVelocity,
+                    angularVelocity: (Math.random() * 10 - 5) * scale,
+                    life: Math.random() * 0.5 + 0.5,
+                    gravity: Math.random() * 0.08 + 0.02,
+                    damping: 0.97 + Math.random() * 0.02
+                });
+            }
+            
+            fgLayer.activate();
+        }
+        
+        // Create fine dust particles
+        function createDustParticles(position, color, scale, count) {
+            dustLayer.activate();
+            
+            for (var i = 0; i < count; i++) {
+                var angle = Math.random() * 2 * Math.PI;
+                var distance = Math.random() * 50 * scale;
+                var particlePosition = position.add(new Point(
+                    Math.cos(angle) * distance,
+                    Math.sin(angle) * distance
+                ));
+                
+                // Create random velocity - with upward drift for dust
+                var speed = Math.random() * 1.5 * scale + 0.5;
+                var particleVelocity = new Point(
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed - Math.random() * scale
+                );
+                
+                // Create size - dust is small
+                var size = Math.random() * 2 * scale + 1;
+                
+                // Create particle
+                var dust = new Path.Circle({
+                    center: particlePosition,
+                    radius: size,
+                    fillColor: color,
+                    opacity: Math.random() * 0.3 + 0.1
+                });
+                
+                // Add to dust particles array
+                dustParticles.push({
+                    path: dust,
+                    velocity: particleVelocity,
+                    life: Math.random() * 0.8 + 0.5,
+                    gravity: Math.random() * 0.01 // Very slight gravity
+                });
+            }
+            
+            fgLayer.activate();
+        }
+        
+        // Animate path fade out
+        function animatePathFade(path) {
+            var originalOpacity = path.opacity || 1;
+            var duration = 800; // milliseconds
+            var startTime = Date.now();
+            
+            function step() {
+                var elapsed = Date.now() - startTime;
+                var progress = Math.min(elapsed / duration, 1);
+                
+                path.opacity = originalOpacity * (1 - progress);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    path.remove();
+                }
+            }
+            
+            requestAnimationFrame(step);
+        }
+        
+        // Animation loop
+        function onFrame(event) {
+            // Update powder clouds
+            for (var i = powderClouds.length - 1; i >= 0; i--) {
+                var cloud = powderClouds[i];
+                
+                // Update life
+                cloud.life -= 0.01;
+                
+                // Update position
+                cloud.position = cloud.position.add(cloud.velocity);
+                cloud.group.position = cloud.position;
+                
+                // Apply rotation
+                cloud.group.rotate(cloud.rotationSpeed);
+                
+                // Update velocity (slow down)
+                cloud.velocity = cloud.velocity.multiply(0.96);
+                
+                // Apply very slight gravity
+                cloud.velocity.y += 0.02;
+                
+                // Update scale (expand slowly)
+                var expansionRate = 1 + (1 - cloud.life) * 0.01;
+                cloud.group.scale(expansionRate);
+                
+                // Update opacity
+                cloud.group.opacity = cloud.life * 0.9;
+                
+                // Remove if dead
+                if (cloud.life <= 0) {
+                    cloud.group.remove();
+                    powderClouds.splice(i, 1);
+                }
+            }
+            
+            // Update powder particles
+            for (var i = powderParticles.length - 1; i >= 0; i--) {
+                var particle = powderParticles[i];
+                
+                // Update life
+                particle.life -= 0.015;
+                
+                // Update position
+                particle.path.position = particle.path.position.add(particle.velocity);
+                
+                // Apply rotation
+                if (particle.angularVelocity) {
+                    particle.path.rotate(particle.angularVelocity);
+                }
+                
+                // Apply gravity
+                particle.velocity.y += particle.gravity;
+                
+                // Apply damping (air resistance)
+                particle.velocity = particle.velocity.multiply(particle.damping);
+                
+                // Update opacity
+                particle.path.opacity = particle.life * 0.8;
+                
+                // Remove if dead
+                if (particle.life <= 0) {
+                    particle.path.remove();
+                    powderParticles.splice(i, 1);
+                }
+            }
+            
+            // Update dust particles
+            for (var i = dustParticles.length - 1; i >= 0; i--) {
+                var dust = dustParticles[i];
+                
+                // Update life
+                dust.life -= 0.01;
+                
+                // Update position
+                dust.path.position = dust.path.position.add(dust.velocity);
+                
+                // Apply very slight gravity
+                dust.velocity.y += dust.gravity;
+                
+                // Dust moves with slight random motion for realistic effect
+                dust.velocity.x += (Math.random() * 0.2 - 0.1);
+                dust.velocity.y += (Math.random() * 0.2 - 0.1);
+                
+                // Dampen velocity
+                dust.velocity = dust.velocity.multiply(0.99);
+                
+                // Update opacity
+                dust.path.opacity = dust.life * 0.3;
+                
+                // Remove if dead or allow some to linger in the air
+                if (dust.life <= 0) {
+                    dust.path.remove();
+                    dustParticles.splice(i, 1);
+                }
+            }
+            
+            // Manage performance by limiting number of particles
+            if (powderParticles.length > 300) {
+                for (var i = 0; i < powderParticles.length - 300; i++) {
+                    if (powderParticles[i].path) {
+                        powderParticles[i].path.remove();
+                    }
+                }
+                powderParticles.splice(0, powderParticles.length - 300);
+            }
+            
+            if (dustParticles.length > 400) {
+                for (var i = 0; i < dustParticles.length - 400; i++) {
+                    if (dustParticles[i].path) {
+                        dustParticles[i].path.remove();
+                    }
+                }
+                dustParticles.splice(0, dustParticles.length - 400);
+            }
+        }
+        
+        // Create some initial color effects
+        for (var i = 0; i < 10; i++) {
+            var x = Math.random() * view.bounds.width;
+            var y = Math.random() * view.bounds.height;
+            createPowderPuff(new Point(x, y), getRandomColor(), Math.random() * 0.7 + 0.5);
+        }
+    </script>
+    
+    <script>
+        // Replace placeholder images with enhanced silhouette SVGs
+        document.addEventListener('DOMContentLoaded', function() {
+            const silhouetteSVGs = [
+                // Person throwing colors - left
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 150">
+                    <path d="M50,30 C55,30 60,35 60,50 C60,65 55,80 55,95 C55,110 50,125 50,140 C50,145 45,150 40,150 C35,150 30,145 30,140 C30,135 35,130 40,130 C45,130 45,135 45,140 M50,30 C45,30 40,35 40,50 C40,65 45,80 45,95 C45,110 50,125 50,140 M20,40 C10,25 5,30 15,50 C18,55 20,60 20,65 M75,50 C85,35 90,40 85,50" fill="#000" opacity="0.9"/>
+                </svg>`,
+                
+                // Person with hands up celebrating - right
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 150">
+                    <path d="M50,30 C55,30 60,35 60,50 C60,65 55,80 55,95 C55,110 50,125 50,140 C50,145 45,150 40,150 C35,150 30,145 30,140 C30,135 35,130 40,130 C45,130 45,135 45,140 M50,30 C45,30 40,35 40,50 C40,65 45,80 45,95 C45,110 50,125 50,140 M10,40 C20,15 30,25 25,40 M90,40 C80,15 70,25 75,40" fill="#000" opacity="0.9"/>
+                </svg>`
+            ];
+            
+            document.getElementById('silhouette-left').src = 'data:image/svg+xml;utf8,' + encodeURIComponent(silhouetteSVGs[0]);
+            document.getElementById('silhouette-right').src = 'data:image/svg+xml;utf8,' + encodeURIComponent(silhouetteSVGs[1]);
+            
+            // Hide instructions after 5 seconds
+            setTimeout(() => {
+                const instructions = document.getElementById('instructions');
+                instructions.style.opacity = '0';
+                instructions.style.transition = 'opacity 1s ease-out';
+                setTimeout(() => {
+                    instructions.style.display = 'none';
+                }, 1000);
+            }, 5000);
+        });
+    </script>
+</body>
+</html>
