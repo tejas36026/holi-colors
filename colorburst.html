@@ -1,0 +1,453 @@
+<div class="holi-container">
+    <div class="canvas-container">
+      <canvas id="canvas"></canvas>
+    </div>
+    <div class="content">
+      <h1 class="title">Celebration of Colors</h1>
+      <div class="controls">
+        <button id="colorBurst">Color Burst</button>
+        <div class="controls-row">
+          <button id="toggleGravity">Toggle Gravity</button>
+          <button id="toggleWind">Toggle Wind</button>
+        </div>
+        <div class="slider-container">
+          <label for="particleCount">Particle Density</label>
+          <input type="range" id="particleCount" min="100" max="3000" value="1000" step="100">
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+  
+    body {
+      font-family: 'Montserrat', sans-serif;
+      overflow: hidden;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  
+    .holi-container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+  
+    .canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+  
+    .content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 20px;
+      background-color: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      max-width: 600px;
+      width: 90%;
+    }
+  
+    .title {
+      font-size: 3rem;
+      margin-bottom: 30px;
+      background: linear-gradient(45deg, #FF5252, #FFEB3B, #4CAF50, #2196F3, #9C27B0, #FF9800);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-size: 400% 400%;
+      animation: gradient 5s ease infinite;
+    }
+  
+    @keyframes gradient {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+  
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+  
+    .controls-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+  
+    button {
+      padding: 12px 24px;
+      background: linear-gradient(45deg, #ff416c, #ff4b2b);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      flex-grow: 1;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 7px 20px rgba(0, 0, 0, 0.2);
+    }
+  
+    button:active {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+  
+    #colorBurst {
+      background: linear-gradient(45deg, #ff416c, #ff4b2b, #ff7f50, #ffcc5c);
+      background-size: 300% 300%;
+      animation: gradientBtn 3s ease infinite;
+      font-size: 1.1rem;
+      padding: 15px 30px;
+    }
+  
+    @keyframes gradientBtn {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+  
+    .slider-container {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: 10px;
+    }
+  
+    .slider-container label {
+      color: #333;
+      font-weight: 500;
+    }
+  
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 10px;
+      border-radius: 5px;
+      background: linear-gradient(to right, #ff416c, #ff4b2b);
+      outline: none;
+    }
+  
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+  
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      border: none;
+    }
+  
+    @media (max-width: 768px) {
+      .title {
+        font-size: 2rem;
+        margin-bottom: 20px;
+      }
+  
+      .content {
+        padding: 15px;
+      }
+  
+      button {
+        padding: 10px 20px;
+      }
+  
+      #colorBurst {
+        padding: 12px 24px;
+      }
+    }
+  </style>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      const colorBurstBtn = document.getElementById('colorBurst');
+      const toggleGravityBtn = document.getElementById('toggleGravity');
+      const toggleWindBtn = document.getElementById('toggleWind');
+      const particleCountSlider = document.getElementById('particleCount');
+  
+      // Resize canvas to fill window
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      
+      // Initial resize
+      resizeCanvas();
+      
+      // Handle window resize
+      window.addEventListener('resize', resizeCanvas);
+  
+      // Particle system
+      class ParticleSystem {
+        constructor() {
+          this.particles = [];
+          this.settings = {
+            gravity: true,
+            wind: false,
+            particleCount: parseInt(particleCountSlider.value),
+            colors: [
+              '#FF5252', // Red
+              '#FFEB3B', // Yellow
+              '#4CAF50', // Green
+              '#2196F3', // Blue
+              '#9C27B0', // Purple
+              '#FF9800'  // Orange
+            ],
+            windStrength: 0.05,
+            windDirection: 1, // 1 for right, -1 for left
+            gravityStrength: 0.05
+          };
+          
+          // Initialize with some particles
+          this.generateParticles(this.settings.particleCount / 2);
+        }
+        
+        generateParticles(count, source = null) {
+          for (let i = 0; i < count; i++) {
+            let x, y, vx, vy, size, lifespan;
+            
+            if (source) {
+              // Generate from a specific point
+              x = source.x;
+              y = source.y;
+              vx = (Math.random() - 0.5) * 10;
+              vy = (Math.random() - 0.5) * 10 - 2; // Initial upward bias
+              size = 2 + Math.random() * 8;
+              lifespan = 100 + Math.random() * 150;
+            } else {
+              // Generate randomly across canvas
+              x = Math.random() * canvas.width;
+              y = Math.random() * canvas.height;
+              vx = (Math.random() - 0.5) * 0.5;
+              vy = (Math.random() - 0.5) * 0.5;
+              size = 1 + Math.random() * 4;
+              lifespan = 200 + Math.random() * 300;
+            }
+            
+            const color = this.settings.colors[Math.floor(Math.random() * this.settings.colors.length)];
+            const opacity = 0.7 + Math.random() * 0.3;
+            const type = Math.random() > 0.7 ? 'circle' : 'square';
+            
+            this.particles.push({
+              x, y, vx, vy, size, color, opacity, lifespan, maxLifespan: lifespan, type
+            });
+          }
+        }
+        
+        removeParticles(count) {
+          this.particles.splice(0, count);
+        }
+        
+        updateParticleCount(count) {
+          const currentCount = this.particles.length;
+          const diff = count - currentCount;
+          
+          if (diff > 0) {
+            // Add more particles
+            this.generateParticles(diff);
+          } else if (diff < 0) {
+            // Remove particles
+            this.removeParticles(Math.abs(diff));
+          }
+        }
+        
+        update() {
+          for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            
+            // Apply gravity
+            if (this.settings.gravity) {
+              p.vy += this.settings.gravityStrength;
+            }
+            
+            // Apply wind
+            if (this.settings.wind) {
+              p.vx += this.settings.windStrength * this.settings.windDirection;
+            }
+            
+            // Update position
+            p.x += p.vx;
+            p.y += p.vy;
+            
+            // Boundary check with bounce
+            if (p.x < 0 || p.x > canvas.width) {
+              p.vx *= -0.5; // Dampen velocity on bounce
+              p.x = p.x < 0 ? 0 : canvas.width;
+            }
+            
+            if (p.y < 0 || p.y > canvas.height) {
+              p.vy *= -0.5; // Dampen velocity on bounce
+              p.y = p.y < 0 ? 0 : canvas.height;
+            }
+            
+            // Reduce lifespan
+            p.lifespan--;
+            
+            // Remove dead particles
+            if (p.lifespan <= 0) {
+              this.particles.splice(i, 1);
+              
+              // Regenerate particles to maintain count if not from burst
+              if (this.particles.length < this.settings.particleCount) {
+                this.generateParticles(1);
+              }
+            }
+          }
+        }
+        
+        draw() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          for (const p of this.particles) {
+            ctx.globalAlpha = (p.lifespan / p.maxLifespan) * p.opacity;
+            ctx.fillStyle = p.color;
+            
+            if (p.type === 'circle') {
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+            }
+          }
+          
+          ctx.globalAlpha = 1;
+        }
+        
+        colorBurst(x, y, count = 300) {
+          this.generateParticles(count, {x, y});
+        }
+        
+        toggleGravity() {
+          this.settings.gravity = !this.settings.gravity;
+          return this.settings.gravity;
+        }
+        
+        toggleWind() {
+          this.settings.wind = !this.settings.wind;
+          
+          // Randomly change wind direction when toggled on
+          if (this.settings.wind) {
+            this.settings.windDirection = Math.random() > 0.5 ? 1 : -1;
+          }
+          
+          return this.settings.wind;
+        }
+      }
+      
+      // Create particle system
+      const particleSystem = new ParticleSystem();
+      
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+        particleSystem.update();
+        particleSystem.draw();
+      }
+      
+      // Start animation
+      animate();
+      
+      // Event listeners
+      colorBurstBtn.addEventListener('click', () => {
+        // Create multiple bursts for a more spectacular effect
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            const x = Math.random() * canvas.width;
+            const y = canvas.height * (0.3 + Math.random() * 0.4); // Middle area of canvas
+            particleSystem.colorBurst(x, y, 100 + Math.floor(Math.random() * 100));
+          }, i * 100);
+        }
+      });
+      
+      toggleGravityBtn.addEventListener('click', () => {
+        const isOn = particleSystem.toggleGravity();
+        toggleGravityBtn.textContent = isOn ? 'Gravity: ON' : 'Gravity: OFF';
+      });
+      
+      toggleWindBtn.addEventListener('click', () => {
+        const isOn = particleSystem.toggleWind();
+        toggleWindBtn.textContent = isOn ? 'Wind: ON' : 'Wind: OFF';
+      });
+      
+      particleCountSlider.addEventListener('input', () => {
+        particleSystem.updateParticleCount(parseInt(particleCountSlider.value));
+        particleSystem.settings.particleCount = parseInt(particleCountSlider.value);
+      });
+      
+      // Handle canvas clicks for bursts
+      canvas.addEventListener('click', (e) => {
+        particleSystem.colorBurst(e.clientX, e.clientY);
+      });
+      
+      // Periodic color bursts
+      function randomBurst() {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        particleSystem.colorBurst(x, y, 150);
+        
+        // Schedule next burst
+        setTimeout(randomBurst, 3000 + Math.random() * 5000);
+      }
+      
+      // Start random bursts after a delay
+      setTimeout(randomBurst, 2000);
+      
+      // Initial button states
+      toggleGravityBtn.textContent = 'Gravity: ON';
+      toggleWindBtn.textContent = 'Wind: OFF';
+    });
+  </script>
