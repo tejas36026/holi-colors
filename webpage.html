@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Holi Animation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: white;
+            font-family: 'Arial', sans-serif;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="%23ff5722" opacity="0.6"/></svg>'), auto;
+        }
+        
+        .container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .content {
+            position: relative;
+            width: 80%;
+            max-width: 800px;
+            aspect-ratio: 16/9;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        .watercolor-border {
+            position: absolute;
+            top: -60px;
+            left: -60px;
+            right: -60px;
+            bottom: -60px;
+            pointer-events: none;
+            z-index: 5;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        
+        .color-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.6;
+            transform-origin: center;
+            animation: pulse 10s infinite alternate;
+        }
+        
+        .holi-title {
+            font-size: clamp(2rem, 8vw, 6rem);
+            font-weight: bold;
+            text-align: center;
+            position: relative;
+            z-index: 20;
+            font-family: 'Brush Script MT', cursive;
+            color: black;
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.8);
+            line-height: 1;
+        }
+        
+        .silhouette {
+            position: absolute;
+            bottom: 0;
+            width: 15%;
+            height: 25%;
+            background-repeat: no-repeat;
+            background-position: bottom center;
+            background-size: contain;
+            z-index: 8;
+            filter: brightness(0);
+            opacity: 0.8;
+        }
+        
+        .silhouette.left {
+            left: 5%;
+            animation: jump 3s infinite alternate ease-in-out;
+        }
+        
+        .silhouette.right {
+            right: 5%;
+            animation: jump 2.5s 0.5s infinite alternate ease-in-out;
+        }
+        
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 15;
+            opacity: 0;
+            animation: fall 4s linear forwards;
+        }
+        
+        .mandala {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            z-index: 6;
+            opacity: 0.2;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes jump {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-30px); }
+        }
+        
+        @keyframes fall {
+            0% { 
+                transform: translateY(-100px) rotate(0deg); 
+                opacity: 1;
+            }
+            100% { 
+                transform: translateY(1000px) rotate(360deg); 
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="watercolor-border" id="watercolor-border"></div>
+        <div class="content">
+            <h1 class="holi-title">Happy <span style="color: #FF1493;">H</span><span style="color: #FFA500;">O</span><span style="color: #9400D3;">L</span><span style="color: #32CD32;">I</span></h1>
+            
+            <div class="silhouette left"></div>
+            <div class="silhouette right"></div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.querySelector('.container');
+            const watercolorBorder = document.getElementById('watercolor-border');
+            const content = document.querySelector('.content');
+            
+            // Holi vibrant colors
+            const colors = [
+                '#FF1493', // Deep Pink
+                '#FF4500', // Orange Red
+                '#FFD700', // Gold
+                '#32CD32', // Lime Green
+                '#1E90FF', // Dodger Blue
+                '#9400D3', // Dark Violet
+                '#FF69B4', // Hot Pink
+                '#00FFFF', // Cyan
+                '#FF9933', // Orange
+                '#9966CC', // Amethyst
+                '#FF3366', // Fiery Rose
+                '#33CC99'  // Medium Aquamarine
+            ];
+            
+            // Create watercolor border effect
+            for (let i = 0; i < 12; i++) {
+                const blob = document.createElement('div');
+                blob.className = 'color-blob';
+                
+                const color = colors[i % colors.length];
+                const size = Math.random() * 200 + 200;
+                const posX = Math.random() * 100;
+                const posY = Math.random() * 100;
+                
+                blob.style.backgroundColor = color;
+                blob.style.width = `${size}px`;
+                blob.style.height = `${size}px`;
+                blob.style.left = `${posX}%`;
+                blob.style.top = `${posY}%`;
+                blob.style.transformOrigin = `${posX}% ${posY}%`;
+                blob.style.animationDelay = `${i * 0.5}s`;
+                
+                watercolorBorder.appendChild(blob);
+            }
+            
+            // Create silhouette shapes using SVG
+            const silhouettes = document.querySelectorAll('.silhouette');
+            
+            const silhouetteSVGs = [
+                // Person with hands up in celebration
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200"><path d="M50,40 C60,40 65,50 65,70 C65,90 55,110 55,130 C55,150 50,170 50,190 C50,195 45,200 40,200 C35,200 30,195 30,190 C30,185 35,180 40,180 C45,180 45,185 45,190 M50,40 C40,40 35,50 35,70 C35,90 45,110 45,130 C45,150 50,170 50,190 M30,70 C20,60 10,70 5,80 M70,70 C80,60 90,70 95,80" fill="#000"/></svg>`,
+                
+                // Person throwing colors
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200"><path d="M50,40 C60,40 65,50 65,70 C65,90 55,110 55,130 C55,150 50,170 50,190 C50,195 45,200 40,200 C35,200 30,195 30,190 C30,185 35,180 40,180 C45,180 45,185 45,190 M50,40 C40,40 35,50 35,70 C35,90 45,110 45,130 C45,150 50,170 50,190 M20,60 C10,40 5,50 10,60 M80,60 C90,40 95,50 90,60" fill="#000"/></svg>`
+            ];
+            
+            silhouettes.forEach((silhouette, index) => {
+                silhouette.style.backgroundImage = `url('data:image/svg+xml;utf8,${encodeURIComponent(silhouetteSVGs[index % silhouetteSVGs.length])}')`;
+            });
+            
+            // Create decorative mandalas in the background
+            for (let i = 0; i < 15; i++) {
+                createMandala();
+            }
+            
+            // Create a simple mandala SVG
+            function createMandalaPattern() {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="${color}" stroke-width="2"/>
+                    <circle cx="50" cy="50" r="30" fill="none" stroke="${color}" stroke-width="1.5"/>
+                    <circle cx="50" cy="50" r="20" fill="none" stroke="${color}" stroke-width="1"/>
+                    <circle cx="50" cy="50" r="10" fill="none" stroke="${color}" stroke-width="0.5"/>
+                    <circle cx="50" cy="50" r="5" fill="${color}"/>
+                    <path d="M50,10 L50,90 M10,50 L90,50 M22,22 L78,78 M22,78 L78,22" stroke="${color}" stroke-width="0.5" opacity="0.7"/>
+                </svg>`;
+            }
+            
+            function createMandala() {
+                const mandala = document.createElement('div');
+                mandala.className = 'mandala';
+                
+                const size = Math.random() * 40 + 20;
+                const posX = Math.random() * 100;
+                const posY = Math.random() * 100;
+                
+                mandala.style.width = `${size}px`;
+                mandala.style.height = `${size}px`;
+                mandala.style.left = `${posX}%`;
+                mandala.style.top = `${posY}%`;
+                mandala.style.backgroundImage = `url('data:image/svg+xml;utf8,${encodeURIComponent(createMandalaPattern())}')`;
+                
+                content.appendChild(mandala);
+            }
+            
+            // Add mouse move event for interactive color particles
+            document.addEventListener('mousemove', function(e) {
+                createColorParticle(e.clientX, e.clientY);
+            });
+            
+            // Add touch events for mobile
+            document.addEventListener('touchmove', function(e) {
+                const touch = e.touches[0];
+                createColorParticle(touch.clientX, touch.clientY);
+            });
+            
+            // Create color particles at mouse/touch position
+            function createColorParticle(x, y) {
+                // Create multiple particles for a more dramatic effect
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        const particle = document.createElement('div');
+                        particle.className = 'particle';
+                        
+                        const size = Math.random() * 15 + 5;
+                        const color = colors[Math.floor(Math.random() * colors.length)];
+                        
+                        // Randomize position slightly
+                        const offsetX = (Math.random() - 0.5) * 30;
+                        const offsetY = (Math.random() - 0.5) * 30;
+                        
+                        particle.style.width = `${size}px`;
+                        particle.style.height = `${size}px`;
+                        particle.style.left = `${x + offsetX}px`;
+                        particle.style.top = `${y + offsetY}px`;
+                        particle.style.backgroundColor = color;
+                        
+                        container.appendChild(particle);
+                        
+                        // Remove particle after animation completes
+                        setTimeout(() => {
+                            particle.remove();
+                        }, 4000);
+                    }, i * 50);
+                }
+            }
+            
+            // Create automatic particles periodically
+            setInterval(() => {
+                const x = Math.random() * window.innerWidth;
+                const y = Math.random() * window.innerHeight;
+                createColorParticle(x, y);
+            }, 300);
+            
+            // Create explosion of colors from the title
+            setInterval(() => {
+                const titleRect = document.querySelector('.holi-title').getBoundingClientRect();
+                const centerX = titleRect.left + titleRect.width / 2;
+                const centerY = titleRect.top + titleRect.height / 2;
+                
+                for (let i = 0; i < 20; i++) {
+                    setTimeout(() => {
+                        const angle = Math.random() * Math.PI * 2;
+                        const distance = Math.random() * 100 + 50;
+                        const x = centerX + Math.cos(angle) * distance;
+                        const y = centerY + Math.sin(angle) * distance;
+                        createColorParticle(x, y);
+                    }, i * 50);
+                }
+            }, 5000);
+        });
+    </script>
+</body>
+</html>
