@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Gooey Effect Animation</title>
+  <style>
+    :root {
+      --primary-color: #9d4edd;
+      --secondary-color: #c77dff;
+      --tertiary-color: #e0aaff;
+      --background-start: #10002b;
+      --background-end: #240046;
+      --blob-shadow: rgba(194, 129, 255, 0.6);
+      --glow-size: 15px;
+      --transition-speed: 0.3s;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at center, var(--background-end) 0%, var(--background-start) 100%);
+      font-family: 'Arial', sans-serif;
+      perspective: 1000px;
+    }
+
+    .scene {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      transform-style: preserve-3d;
+    }
+
+    .gooey-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      filter: url('#gooey');
+      z-index: 10;
+      will-change: transform;
+    }
+
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      will-change: transform, opacity;
+      cursor: pointer;
+      transition: transform var(--transition-speed) cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .blob::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, 
+                  var(--tertiary-color) 0%, 
+                  var(--secondary-color) 50%, 
+                  var(--primary-color) 100%);
+      opacity: 0.9;
+      z-index: -1;
+      box-shadow: 0 0 var(--glow-size) var(--blob-shadow);
+      filter: brightness(1);
+      transition: filter 0.5s ease, box-shadow 0.5s ease;
+    }
+
+    .blob:hover::before {
+      filter: brightness(1.2);
+      box-shadow: 0 0 calc(var(--glow-size) * 2) var(--blob-shadow);
+    }
+
+    .blob-main {
+      width: 300px;
+      height: 300px;
+      top: 150px;
+      left: 150px;
+      z-index: 3;
+    }
+
+    .blob-1 {
+      width: 120px;
+      height: 120px;
+      top: 100px;
+      left: 350px;
+      z-index: 4;
+    }
+
+    .blob-2 {
+      width: 150px;
+      height: 150px;
+      top: 350px;
+      left: 380px;
+      z-index: 2;
+    }
+
+    .blob-3 {
+      width: 100px;
+      height: 100px;
+      top: 80px;
+      left: 120px;
+      z-index: 5;
+    }
+
+    /* Additional blobs for more complex effect */
+    .blob-4 {
+      width: 130px;
+      height: 130px;
+      top: 320px;
+      left: 90px;
+      z-index: 1;
+    }
+
+    .blob-5 {
+      width: 70px;
+      height: 70px;
+      top: 220px;
+      left: 430px;
+      z-index: 6;
+      opacity: 0.9;
+    }
+
+    .blob-6 {
+      width: 80px;
+      height: 80px;
+      top: 400px;
+      left: 200px;
+      z-index: 2;
+      opacity: 0.8;
+    }
+
+    .icon {
+      font-size: 28px;
+      position: relative;
+      z-index: 10;
+      color: white;
+      text-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+      opacity: 0.9;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      user-select: none;
+    }
+
+    .blob:hover .icon {
+      transform: scale(1.3);
+      opacity: 1;
+    }
+
+    .blob.active .icon {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.5); opacity: 1; }
+    }
+
+    .particles-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .particle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .tooltip {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.9);
+      color: #240046;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      white-space: nowrap;
+      z-index: 100;
+    }
+
+    .tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: rgba(255, 255, 255, 0.9) transparent transparent transparent;
+    }
+
+    .blob:hover + .tooltip {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .connection {
+      position: absolute;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(224, 170, 255, 0) 0%, rgba(224, 170, 255, 0.5) 50%, rgba(224, 170, 255, 0) 100%);
+      top: 0;
+      left: 0;
+      transform-origin: left center;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    /* Complex animation patterns for blobs */
+    @keyframes floatComplex1 {
+      0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+      20% { transform: translate(20px, -30px) rotate(5deg) scale(1.05); }
+      40% { transform: translate(40px, 0px) rotate(10deg) scale(1.02); }
+      60% { transform: translate(30px, 30px) rotate(5deg) scale(0.98); }
+      80% { transform: translate(-10px, 20px) rotate(-5deg) scale(0.95); }
+      100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    }
+
+    @keyframes floatComplex2 {
+      0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+      25% { transform: translate(-25px, -15px) rotate(-8deg) scale(1.08); }
+      50% { transform: translate(-15px, 20px) rotate(-15deg) scale(1); }
+      75% { transform: translate(10px, 30px) rotate(-5deg) scale(0.95); }
+      100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    }
+
+    @keyframes floatComplex3 {
+      0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+      30% { transform: translate(15px, 25px) rotate(8deg) scale(1.04); }
+      60% { transform: translate(30px, -10px) rotate(15deg) scale(0.96); }
+      100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    }
+
+    @keyframes floatComplex4 {
+      0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+      20% { transform: translate(-30px, -10px) rotate(-10deg) scale(1.06); }
+      40% { transform: translate(-40px, 15px) rotate(-5deg) scale(1.02); }
+      60% { transform: translate(-20px, 35px) rotate(5deg) scale(0.97); }
+      80% { transform: translate(15px, 15px) rotate(10deg) scale(0.94); }
+      100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    }
+
+    @keyframes floatComplex5 {
+      0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+      25% { transform: translate(10px, -25px) rotate(15deg) scale(1.1); }
+      50% { transform: translate(25px, 0px) rotate(25deg) scale(1.05); }
+      75% { transform: translate(15px, 20px) rotate(10deg) scale(0.95); }
+      100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    }
+
+    @keyframes floatComplex6 {
+      0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+      15% { transform: translate(-15px, -20px) rotate(-8deg) scale(1.08); }
+      30% { transform: translate(-30px, -5px) rotate(-15deg) scale(1.04); }
+      45% { transform: translate(-20px, 15px) rotate(-8deg) scale(1); }
+      60% { transform: translate(0px, 25px) rotate(0deg) scale(0.96); }
+      75% { transform: translate(20px, 15px) rotate(8deg) scale(0.92); }
+      90% { transform: translate(15px, -5px) rotate(4deg) scale(0.96); }
+      100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    }
+
+    .backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, rgba(16, 0, 43, 0) 0%, rgba(16, 0, 43, 0.8) 100%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: rgba(255, 255, 255, 0.95);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      max-width: 500px;
+      color: #240046;
+    }
+
+    .modal.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .modal-title {
+      font-size: 24px;
+      margin-bottom: 15px;
+      color: var(--primary-color);
+    }
+
+    .modal-content {
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--primary-color);
+      background: none;
+      border: none;
+      transition: transform 0.2s ease;
+    }
+
+    .modal-close:hover {
+      transform: scale(1.2);
+    }
+
+    .loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--background-start);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      transition: opacity 0.8s ease;
+    }
+
+    .loader-content {
+      position: relative;
+      width: 100px;
+      height: 100px;
+    }
+
+    .loader-blob {
+      position: absolute;
+      background: var(--tertiary-color);
+      border-radius: 50%;
+      filter: blur(10px);
+      animation: loaderPulse 2s infinite ease-in-out;
+    }
+
+    .loader-blob:nth-child(1) {
+      width: 60px;
+      height: 60px;
+      left: 20px;
+      top: 20px;
+      animation-delay: 0s;
+    }
+
+    .loader-blob:nth-child(2) {
+      width: 40px;
+      height: 40px;
+      left: 10px;
+      top: 30px;
+      background: var(--secondary-color);
+      animation-delay: 0.2s;
+    }
+
+    .loader-blob:nth-child(3) {
+      width: 30px;
+      height: 30px;
+      left: 60px;
+      top: 40px;
+      background: var(--primary-color);
+      animation-delay: 0.4s;
+    }
+
+    @keyframes loaderPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+    }
+
+    @media (max-width: 768px) {
+      .gooey-container {
+        width: 400px;
+        height: 400px;
+      }
+      
+      .blob-main {
+        width: 200px;
+        height: 200px;
+        top: 100px;
+        left: 100px;
+      }
+      
+      .blob-1, .blob-2, .blob-3, .blob-4, .blob-5, .blob-6 {
+        transform: scale(0.8);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .gooey-container {
+        width: 300px;
+        height: 300px;
+      }
+      
+      .blob-main {
+        width: 150px;
+        height: 150px;
+        top: 75px;
+        left: 75px;
+      }
+      
+      .blob-1, .blob-2, .blob-3, .blob-4, .blob-5, .blob-6 {
+        transform: scale(0.6);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="loader">
+    <div class="loader-content">
+      <div class="loader-blob"></div>
+      <div class="loader-blob"></div>
+      <div class="loader-blob"></div>
+    </div>
+  </div>
+
+  <div class="backdrop"></div>
+  <div class="scene">
+    <div class="particles-container"></div>
+    
+    <div class="gooey-container">
+      <div class="blob blob-main" data-name="main"></div>
+      <div class="tooltip" id="main-tooltip">Central Hub</div>
+      
+      <div class="blob blob-1" data-name="profile" data-content="User Profile"></div>
+      <div class="tooltip" id="profile-tooltip">User Profile</div>
+      
+      <div class="blob blob-2" data-name="messages" data-content="Messages"></div>
+      <div class="tooltip" id="messages-tooltip">Messages</div>
+      
+      <div class="blob blob-3" data-name="settings" data-content="Settings"></div>
+      <div class="tooltip" id="settings-tooltip">Settings</div>
+      
+      <div class="blob blob-4" data-name="notifications" data-content="Notifications"></div>
+      <div class="tooltip" id="notifications-tooltip">Notifications</div>
+      
+      <div class="blob blob-5" data-name="search" data-content="Search"></div>
+      <div class="tooltip" id="search-tooltip">Search</div>
+      
+      <div class="blob blob-6" data-name="help" data-content="Help"></div>
+      <div class="tooltip" id="help-tooltip">Help</div>
+    </div>
+    
+    <div class="connections-container"></div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal" id="feature-modal">
+    <button class="modal-close">&times;</button>
+    <h3 class="modal-title">Feature Name</h3>
+    <div class="modal-content">
+      Feature description will appear here.
+    </div>
+  </div>
+
+  <!-- SVG Filters -->
+  <svg width="0" height="0" style="position: absolute;">
+    <defs>
+      <filter id="gooey">
+        <!-- This more complex filter creates a more advanced gooey effect -->
+        <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur" />
+        <feColorMatrix in="blur" mode="matrix" values="
+          1 0 0 0 0
+          0 1 0 0 0
+          0 0 1 0 0
+          0 0 0 20 -9
+        " result="gooey" />
+        <feComposite in="SourceGraphic" in2="gooey" operator="atop" />
+      </filter>
+    </defs>
+  </svg>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Wait for everything to load
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          document.querySelector('.loader').style.opacity = 0;
+          setTimeout(() => {
+            document.querySelector('.loader').style.display = 'none';
+          }, 800);
+        }, 1000);
+      });
+
+      // Elements
+      const scene = document.querySelector('.scene');
+      const gooeyContainer = document.querySelector('.gooey-container');
+      const blobs = document.querySelectorAll('.blob');
+      const tooltips = document.querySelectorAll('.tooltip');
+      const modal = document.getElementById('feature-modal');
+      const modalTitle = modal.querySelector('.modal-title');
+      const modalContent = modal.querySelector('.modal-content');
+      const modalClose = modal.querySelector('.modal-close');
+      const particlesContainer = document.querySelector('.particles-container');
+      const connectionsContainer = document.createElement('div');
+      connectionsContainer.className = 'connections-container';
+      scene.appendChild(connectionsContainer);
+
+      // Icons for blobs
+      const icons = {
+        main: '🔮',
+        profile: '👤',
+        messages: '💬',
+        settings: '⚙️',
+        notifications: '🔔',
+        search: '🔍',
+        help: '❓'
+      };
+
+      // Add icons to blobs
+      blobs.forEach(blob => {
+        const name = blob.getAttribute('data-name');
+        if (name && icons[name]) {
+          const iconElement = document.createElement('div');
+          iconElement.className = 'icon';
+          iconElement.textContent = icons[name];
+          blob.appendChild(iconElement);
+        }
+      });
+
+      // Create connections between blobs
+      function createConnections() {
+        connectionsContainer.innerHTML = '';
+        const mainBlob = document.querySelector('.blob-main');
+        const mainRect = mainBlob.getBoundingClientRect();
+        const mainCenterX = mainRect.left + mainRect.width / 2;
+        const mainCenterY = mainRect.top + mainRect.height / 2;
+
+        blobs.forEach(blob => {
+          if (!blob.classList.contains('blob-main')) {
+            const blobRect = blob.getBoundingClientRect();
+            const blobCenterX = blobRect.left + blobRect.width / 2;
+            const blobCenterY = blobRect.top + blobRect.height / 2;
+
+            // Calculate distance and angle
+            const dx = blobCenterX - mainCenterX;
+            const dy = blobCenterY - mainCenterY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+            // Create connection line
+            const connection = document.createElement('div');
+            connection.className = 'connection';
+            connection.style.width = `${distance}px`;
+            connection.style.left = `${mainCenterX}px`;
+            connection.style.top = `${mainCenterY}px`;
+            connection.style.transform = `rotate(${angle}deg)`;
+            
+            connectionsContainer.appendChild(connection);
+            
+            // Fade in connections
+            setTimeout(() => {
+              connection.style.opacity = 0.5;
+            }, 300 + Math.random() * 700);
+          }
+        });
+      }
+
+      // Position tooltips
+      function positionTooltips() {
+        blobs.forEach((blob, index) => {
+          const tooltip = tooltips[index];
+          if (tooltip) {
+            const rect = blob.getBoundingClientRect();
+            tooltip.style.left = `${rect.left + rect.width / 2}px`;
+            tooltip.style.top = `${rect.top - tooltip.offsetHeight - 10}px`;
+            tooltip.style.transform = `translateX(-50%)`;
+          }
+        });
+      }
+
+      // Create particles
+      function createParticles(num) {
+        for (let i = 0; i < num; i++) {
+          const particle = document.createElement('div');
+          particle.className = 'particle';
+          particle.style.left = `${Math.random() * 100}%`;
+          particle.style.top = `${Math.random() * 100}%`;
+          particle.style.opacity = 0;
+          particlesContainer.appendChild(particle);
+          
+          // Animate particle
+          animateParticle(particle);
+        }
+      }
+
+      // Animate individual particle
+      function animateParticle(particle) {
+        const duration = 3000 + Math.random() * 5000;
+        const size = 2 + Math.random() * 8;
+        
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        
+        // Random starting position
+        const startX = Math.random() * window.innerWidth;
+        const startY = Math.random() * window.innerHeight;
+        
+        // Random ending position
+        const endX = startX + (Math.random() - 0.5) * 200;
+        const endY = startY - Math.random() * 200; // Move up
+        
+        particle.style.left = `${startX}px`;
+        particle.style.top = `${startY}px`;
+        
+        // Set animation
+        particle.animate([
+          { transform: `translate(0, 0)`, opacity: 0 },
+          { transform: `translate(${endX - startX}px, ${endY - startY}px)`, opacity: 0.7, offset: 0.2 },
+          { transform: `translate(${endX - startX}px, ${endY - startY}px)`, opacity: 0, offset: 1 }
+        ], {
+          duration: duration,
+          easing: 'ease-out',
+          fill: 'forwards'
+        });
+        
+        // Recycle particle
+        setTimeout(() => {
+          if (particle.parentNode === particlesContainer) {
+            particle.remove();
+            createParticles(1);
+          }
+        }, duration);
+      }
+
+      // Apply complex animations to blobs
+      function animateBlobs() {
+        const animations = [
+          'floatComplex1', 'floatComplex2', 'floatComplex3', 
+          'floatComplex4', 'floatComplex5', 'floatComplex6'
+        ];
+        
+        blobs.forEach((blob, index) => {
+          const animationIndex = index % animations.length;
+          const animationDuration = 20 + (index * 5);
+          
+          blob.style.animation = `${animations[animationIndex]} ${animationDuration}s infinite ease-in-out`;
+        });
+      }
+
+      // Mouse interaction for parallax effect
+      function setupMouseInteraction() {
+        document.addEventListener('mousemove', e => {
+          const mouseX = e.clientX;
+          const mouseY = e.clientY;
+          
+          // Calculate center
+          const centerX = window.innerWidth / 2;
+          const centerY = window.innerHeight / 2;
+          
+          // Calculate offset from center (normalize to -1 to 1)
+          const offsetX = (mouseX - centerX) / centerX;
+          const offsetY = (mouseY - centerY) / centerY;
+          
+          // Move container slightly (parallax effect)
+          gooeyContainer.style.transform = `translate(-50%, -50%) translate(${offsetX * 20}px, ${offsetY * 20}px)`;
+          
+          // Move blobs individually
+          blobs.forEach((blob, index) => {
+            // Skip if blob is being dragged
+            if (blob.classList.contains('dragging')) return;
+            
+            // Different strength for each blob
+            const strength = 5 + (index * 2);
+            const delay = index * 0.05;
+            
+            setTimeout(() => {
+              const currentTransform = window.getComputedStyle(blob).transform;
+              const match = currentTransform.match(/matrix\(.*?\)/);
+              
+              // Extract animation transform and apply mouse movement
+              if (match) {
+                blob.style.transform = `translate(${offsetX * strength}px, ${offsetY * strength}px)`;
+              } else {
+                blob.style.transform = `translate(${offsetX * strength}px, ${offsetY * strength}px)`;
+              }
+            }, delay * 1000);
+          });
+          
+          // Update connections and tooltips
+          createConnections();
+          positionTooltips();
+        });
+      }
+
+      // Blob click interactions
+      function setupBlobInteractions() {
+        blobs.forEach(blob => {
+          blob.addEventListener('click', () => {
+            const name = blob.getAttribute('data-name');
+            const content = blob.getAttribute('data-content');
+            
+            // Show modal with content
+            if (name && content) {
+              modalTitle.textContent = content;
+              modalContent.textContent = `This is the ${content} feature. You can interact with it to access various functionalities.`;
+              modal.classList.add('active');
+              
+              // Pulse effect on clicked blob
+              blob.classList.add('active');
+              
+              // Create particles burst from blob
+              const rect = blob.getBoundingClientRect();
+              const centerX = rect.left + rect.width / 2;
+              const centerY = rect.top + rect.height / 2;
+              
+              for (let i = 0; i < 10; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = `${centerX}px`;
+                particle.style.top = `${centerY}px`;
+                particle.style.opacity = 0;
+                particlesContainer.appendChild(particle);
+                
+                // Random angle
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 50 + Math.random() * 100;
+                const endX = centerX + Math.cos(angle) * distance;
+                const endY = centerY + Math.sin(angle) * distance;
+                
+                // Set animation
+                particle.animate([
+                  { transform: 'translate(0, 0)', opacity: 0 },
+                  { transform: 'translate(0, 0)', opacity: 0.9, offset: 0.1 },
+                  { transform: `translate(${endX - centerX}px, ${endY - centerY}px)`, opacity: 0 }
+                ], {
+                  duration: 1000 + Math.random() * 1000,
+                  easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                  fill: 'forwards'
+                });
+                
+                // Remove particle after animation
+                setTimeout(() => {
+                  if (particle.parentNode === particlesContainer) {
+                    particle.remove();
+                  }
+                }, 2000);
+              }
+            }
+          });
+        });
+        
+        // Close modal
+        modalClose.addEventListener('click', () => {
+          modal.classList.remove('active');
+          
+          // Remove active state from all blobs
+          blobs.forEach(blob => {
+            blob.classList.remove('active');
+          });
+        });
+      }
+
+      // Make blobs draggable
+      function makeBlobsDraggable() {
+        blobs.forEach(blob => {
+          let isDragging = false;
+          let offsetX, offsetY;
+          
+          blob.addEventListener('mousedown', e => {
+            isDragging = true;
+            blob.classList.add('dragging');
+            
+            // Calculate offset
+            const rect = blob.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            
+            // Increase z-index
+            blob.style.zIndex = '100';
+            
+            // Remove animation while dragging
+            blob.style.animation = 'none';
+          });
+          
+          document.addEventListener('mousemove', e => {
+            if (!isDragging) return;
+            
+            // Calculate new position
+            const containerRect = gooeyContainer.getBoundingClientRect();
+            const newLeft = e.clientX - containerRect.left - offsetX;
+            const newTop = e.clientY - containerRect.top - offsetY;
+            
+            // Apply new position
+            blob.style.left = `${newLeft}px`;
+            blob.style.top = `${newTop}px`;
+            
+            // Update connections and tooltips
+            createConnections();
+            positionTooltips();
+          });
+          
+          document.addEventListener('mouseup', () => {
+            if (isDragging) {
+              isDragging = false;
+              blob.classList.remove('dragging');
+              
+              // Reset z-index
+              setTimeout(() => {
+                blob.style.zIndex = ''; }, 300);
+
+          // Reapply animation
+          setTimeout(() => {
+            animateBlobs();
+          }, 100);
+        }
+      });
+    });
+  }
+
+  // Initialize everything
+  function init() {
+    createConnections();
+    positionTooltips();
+    createParticles(30);
+    animateBlobs();
+    setupMouseInteraction();
+    setupBlobInteractions();
+    makeBlobsDraggable();
+  }
+
+  // Start the magic
+  init();
+});
+</script> </body> </html>
