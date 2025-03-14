@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holi Festival Coin Animation</title>
+    <style>
+        body {
+            font-family: 'Varela Round', sans-serif;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: linear-gradient(to bottom, #8e44ad, #3498db);
+            margin: 0;
+            overflow: hidden;
+        }
+        
+        svg {
+            width: 250px;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
+        }
+
+        @keyframes coinFall {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(200px); }
+        }
+
+        @keyframes coinRotate {
+            0% { transform: rotate(0deg); }
+            10% { transform: rotate(4deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        @keyframes coinFlipRy {
+            0% { ry: 63; }
+            100% { ry: 4; }
+        }
+
+        @keyframes coinReverseCy {
+            0% { cy: 3871; }
+            100% { cy: 3891; }
+        }
+
+        @keyframes coinEdgeHeight {
+            0% { height: 0; }
+            100% { height: 20; }
+        }
+
+        @keyframes coinFade {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* Color particles */
+        .color-particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        @keyframes particleFly {
+            0% { 
+                transform: translate(0, 0) scale(0.1); 
+                opacity: 0; 
+            }
+            10% { 
+                opacity: 1; 
+            }
+            100% { 
+                transform: translate(var(--end-x), var(--end-y)) scale(1); 
+                opacity: 0; 
+            }
+        }
+
+        .bhang-splash {
+            position: absolute;
+            border-radius: 50%;
+            width: 10px;
+            height: 10px;
+            background: linear-gradient(to bottom right, var(--color-start), var(--color-end));
+            filter: blur(1px);
+            transform-origin: center;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        @keyframes splashExpand {
+            0% {
+                transform: scale(0.1);
+                opacity: 0.9;
+            }
+            100% {
+                transform: scale(var(--scale-factor));
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <svg viewBox="1000 3600 700 550">
+        <defs>
+            <clipPath id="coin-edge-clip">
+                <ellipse class="coin-reverse" cx="1248" cy="3871" rx="63" ry="63"/>
+                <rect class="coin-edge" x="1184" y="3871" width="127" height="0"/>
+            </clipPath>
+            <linearGradient id="holi-obverse" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FF9933" />
+                <stop offset="100%" stop-color="#FF3366" />
+            </linearGradient>
+            <linearGradient id="holi-reverse" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#9B59B6" />
+                <stop offset="100%" stop-color="#3498DB" />
+            </linearGradient>
+            <pattern id="holi-pattern" patternUnits="userSpaceOnUse" width="20" height="20">
+                <circle cx="5" cy="5" r="3" fill="#FF9933" />
+                <circle cx="15" cy="15" r="4" fill="#FF3366" />
+                <circle cx="15" cy="5" r="2" fill="#9B59B6" />
+                <circle cx="5" cy="15" r="2.5" fill="#3498DB" />
+            </pattern>
+        </defs>
+        <text fill="#fff" font-size="167" x="1068" y="3930" font-weight="600">HOLI.</text>
+        <g class="coin-body" opacity="1">
+            <g clip-path="url(#coin-edge-clip)">
+                <rect fill="url(#holi-pattern)" x="1185" y="3863" width="127" height="100"/>
+                <g opacity="0.8">
+                    <rect fill="#FF9933" x="1185" y="3863" width="3" height="100"/>
+                    <rect fill="#FF3366" x="1190" y="3863" width="3" height="100"/>
+                    <rect fill="#9B59B6" x="1200" y="3863" width="3" height="100"/>
+                    <rect fill="#3498DB" x="1215" y="3863" width="3" height="100"/>
+                    <rect fill="#FF9933" x="1295" y="3863" width="3" height="100"/>
+                    <rect fill="#FF3366" x="1303" y="3863" width="3" height="100"/>
+                </g>
+            </g>
+            <ellipse class="coin-obverse" fill="url(#holi-obverse)" stroke="#fff" stroke-width="2" cx="1248" cy="3871" rx="62" ry="63"/>
+            
+            <!-- Add Holi design elements to the coin -->
+            <g class="holi-design" transform="translate(1248, 3871) scale(0.4)">
+                <circle cx="0" cy="0" r="100" fill="none" stroke="#fff" stroke-width="5" stroke-opacity="0.7" />
+                <circle cx="-40" cy="-40" r="20" fill="#FF9933" fill-opacity="0.7" />
+                <circle cx="40" cy="40" r="20" fill="#FF3366" fill-opacity="0.7" />
+                <circle cx="40" cy="-40" r="20" fill="#9B59B6" fill-opacity="0.7" />
+                <circle cx="-40" cy="40" r="20" fill="#3498DB" fill-opacity="0.7" />
+            </g>
+        </g>
+    </svg>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const coinBody = document.querySelector('.coin-body');
+            const coinEdge = document.querySelector('.coin-edge');
+            const coinObverse = document.querySelector('.coin-obverse');
+            const coinReverse = document.querySelector('.coin-reverse');
+            const body = document.body;
+            
+            // Holi colors
+            const holiColors = [
+                '#FF9933', // Orange
+                '#FF3366', // Pink
+                '#9B59B6', // Purple
+                '#3498DB', // Blue
+                '#2ECC71', // Green
+                '#F1C40F'  // Yellow
+            ];
+            
+            // Function to create easing similar to elastic.in
+            function easeElasticIn(t) {
+                const p = 0.3;
+                return Math.pow(2, 10 * (t - 1)) * Math.sin((t - 1 - p / 4) * (2 * Math.PI) / p);
+            }
+            
+            // Function to create bounce easing similar to the custom ease in the original
+            function easeBounce(t) {
+                if (t < 0.2) {
+                    return 3 * t;
+                } else if (t < 0.4) {
+                    return 0.6 + (t - 0.2) * 2;
+                } else if (t < 0.6) {
+                    return 1 + (t - 0.4) * 1.5;
+                } else if (t < 0.8) {
+                    return 1.3 + (t - 0.6);
+                } else {
+                    return 1.5 + (t - 0.8) * 2.5;
+                }
+            }
+            
+            // Function to animate SVG attributes
+            function animateSVGAttribute(element, attribute, start, end, duration, delay, easingFunction) {
+                const startTime = performance.now() + delay;
+                const endTime = startTime + duration;
+                
+                function updateAttribute(timestamp) {
+                    if (timestamp < startTime) {
+                        requestAnimationFrame(updateAttribute);
+                        return;
+                    }
+                    
+                    if (timestamp >= endTime) {
+                        element.setAttribute(attribute, end);
+                        return;
+                    }
+                    
+                    const elapsed = timestamp - startTime;
+                    const progress = elapsed / duration;
+                    const easedProgress = easingFunction ? easingFunction(progress) : progress;
+                    const value = start + (end - start) * easedProgress;
+                    
+                    element.setAttribute(attribute, value);
+                    requestAnimationFrame(updateAttribute);
+                }
+                
+                requestAnimationFrame(updateAttribute);
+            }
+            
+            // Function to create a color particle
+            function createColorParticle(x, y, color) {
+                const particle = document.createElement('div');
+                particle.classList.add('color-particle');
+                particle.style.backgroundColor = color;
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+                
+                // Random end position
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 50 + Math.random() * 150;
+                const endX = Math.cos(angle) * distance;
+                const endY = Math.sin(angle) * distance;
+                
+                particle.style.setProperty('--end-x', `${endX}px`);
+                particle.style.setProperty('--end-y', `${endY}px`);
+                
+                // Random size
+                const size = 5 + Math.random() * 10;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // Animation
+                particle.style.animation = `particleFly ${0.5 + Math.random() * 1}s forwards`;
+                
+                document.body.appendChild(particle);
+                
+                // Remove after animation
+                setTimeout(() => {
+                    particle.remove();
+                }, 2000);
+            }
+            
+            // Function to create color splash effect (bhang splashes)
+            function createColorSplash(x, y) {
+                const colorStart = holiColors[Math.floor(Math.random() * holiColors.length)];
+                const colorEnd = holiColors[Math.floor(Math.random() * holiColors.length)];
+                
+                const splash = document.createElement('div');
+                splash.classList.add('bhang-splash');
+                splash.style.left = `${x}px`;
+                splash.style.top = `${y}px`;
+                splash.style.setProperty('--color-start', colorStart);
+                splash.style.setProperty('--color-end', colorEnd);
+                
+                // Random scale
+                const scale = 2 + Math.random() * 4;
+                splash.style.setProperty('--scale-factor', scale);
+                
+                // Animation
+                splash.style.animation = `splashExpand ${0.7 + Math.random() * 0.5}s forwards`;
+                
+                document.body.appendChild(splash);
+                
+                // Remove after animation
+                setTimeout(() => {
+                    splash.remove();
+                }, 1200);
+            }
+            
+            // Function to create color particles explosion
+            function createColorExplosion(x, y, particleCount) {
+                for (let i = 0; i < particleCount; i++) {
+                    const color = holiColors[Math.floor(Math.random() * holiColors.length)];
+                    createColorParticle(x, y, color);
+                }
+                
+                // Create a few color splashes
+                for (let i = 0; i < 3; i++) {
+                    createColorSplash(x, y);
+                }
+            }
+            
+            // Function to create a repeating animation
+            function startAnimationCycle() {
+                // Reset elements
+                coinBody.style.transform = 'translateY(0) rotate(0deg)';
+                coinBody.style.opacity = '1';
+                coinObverse.setAttribute('ry', '63');
+                coinReverse.setAttribute('ry', '63');
+                coinReverse.setAttribute('cy', '3871');
+                coinEdge.setAttribute('height', '0');
+                
+                // Coin falling
+                setTimeout(() => {
+                    coinBody.style.transition = 'transform 1.2s cubic-bezier(0.25, 0.1, 0.25, 1)';
+                    coinBody.style.transform = 'translateY(200px) rotate(0deg)';
+                }, 0);
+                
+                // Random rotation
+                setTimeout(() => {
+                    const randomRotation = Math.random() * 8 - 4; // Random between -4 and 4
+                    coinBody.style.transition = 'transform 0.12s linear';
+                    coinBody.style.transform = `translateY(200px) rotate(${randomRotation}deg)`;
+                }, 120);
+                
+                // Return to zero rotation with elastic effect
+                setTimeout(() => {
+                    coinBody.style.transition = 'transform 0.96s cubic-bezier(0.5, 0.005, 0.165, 0.995)';
+                    coinBody.style.transform = 'translateY(200px) rotate(0deg)';
+                }, 240);
+                
+                // Coin flip - animate ry attributes
+                setTimeout(() => {
+                    animateSVGAttribute(coinObverse, 'ry', 63, 4, 840, 0, t => t);
+                    animateSVGAttribute(coinReverse, 'ry', 63, 4, 840, 0, t => t);
+                    animateSVGAttribute(coinReverse, 'cy', 3871, 3891, 840, 0, t => t);
+                    animateSVGAttribute(coinEdge, 'height', 0, 20, 840, 0, t => t);
+                }, 360);
+                
+                // Create color burst effect when coin hits
+                setTimeout(() => {
+                    const svgRect = document.querySelector('svg').getBoundingClientRect();
+                    const coinX = svgRect.left + svgRect.width / 2;
+                    const coinY = svgRect.top + svgRect.height / 2 + 100; // Adjust based on fall height
+                    createColorExplosion(coinX, coinY, 30);
+                }, 500);
+                
+                // Hide coin
+                setTimeout(() => {
+                    coinBody.style.transition = 'opacity 0.5s linear';
+                    coinBody.style.opacity = '0';
+                }, 2200);
+                
+                // Restart animation after completion
+                setTimeout(() => {
+                    startAnimationCycle();
+                }, 2700);
+            }
+            
+            // Create floating Holi color particles in the background
+            function createBackgroundParticles() {
+                setInterval(() => {
+                    const x = Math.random() * window.innerWidth;
+                    const y = Math.random() * window.innerHeight;
+                    const color = holiColors[Math.floor(Math.random() * holiColors.length)];
+                    createColorParticle(x, y, color);
+                }, 300);
+            }
+            
+            // Start the animations
+            startAnimationCycle();
+            createBackgroundParticles();
+        });
+    </script>
+</body>
+</html>
